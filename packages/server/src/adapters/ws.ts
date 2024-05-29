@@ -1,4 +1,5 @@
 import type { IncomingMessage } from 'http';
+import type { FastifyRequest } from 'fastify';
 import type ws from 'ws';
 import type {
   AnyRouter,
@@ -37,7 +38,7 @@ const WEBSOCKET_OPEN = 1; /* ws.WebSocket.OPEN */
  * @public
  */
 export type CreateWSSContextFnOptions = Omit<
-  NodeHTTPCreateContextFnOptions<IncomingMessage, ws.WebSocket>,
+  NodeHTTPCreateContextFnOptions<IncomingMessage | FastifyRequest, ws.WebSocket>,
   'info'
 >;
 
@@ -87,7 +88,7 @@ export function getWSConnectionHandler<TRouter extends AnyRouter>(
   const { createContext, router } = opts;
   const { transformer } = router._def._config;
 
-  return async (client: ws.WebSocket, req: IncomingMessage) => {
+  return async (client: ws.WebSocket, req: IncomingMessage, req2?: FastifyRequest) => {
     const clientSubscriptions = new Map<number | string, Unsubscribable>();
 
     function respond(untransformedJSON: TRPCResponseMessage) {
@@ -113,7 +114,7 @@ export function getWSConnectionHandler<TRouter extends AnyRouter>(
       });
     }
 
-    const ctxPromise = createContext?.({ req, res: client });
+    const ctxPromise = createContext?.({ req: req2 ?? req, res: client });
     let ctx: inferRouterContext<TRouter> | undefined = undefined;
 
     async function handleRequest(msg: TRPCClientOutgoingMessage) {
